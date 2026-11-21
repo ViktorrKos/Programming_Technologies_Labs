@@ -1,0 +1,81 @@
+pipeline {
+    options { timestamps() }
+
+    agent none
+
+    environment {
+        IMAGE_NAME = 'vkdevinfo'
+    }
+
+    stages {
+        stage('Check scm') {
+            agent any
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            agent {
+                docker {
+                    image 'python:3.12-alpine'
+                    args '-u root'
+                }
+            }
+            steps {
+                echo "Building ...${BUILD_NUMBER}"
+                sh 'python -m py_compile app.py'
+                echo 'Build completed'
+            }
+        }
+
+        stage('Test') {
+            agent {
+                docker {
+                    image 'python:3.12-alpine'
+                    args '-u root'
+                }
+            }
+            steps {
+                sh 'pip install --no-cache-dir --root-user-action=ignore -r requirements.txt -r requirements-test.txt'
+                sh 'python app_tests.py'
+            }
+            post {
+                always {
+                    junit 'test-reports/*.xml'
+                }
+                success {
+                    echo 'Application testing successfully completed'
+                }
+                failure {
+                    echo 'Ooopsss!!! Tests failed!'
+                }
+            }
+        }
+
+        stage('Image building') {
+            agent any
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER -t $IMAGE_NAME:latest .'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            agent any
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                                  usernameVariable: 'DH_USER',
+                                                  passwordVariable: 'DH_PASS')]) {
+                    sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+                    sh 'docker push $IMAGE_NAME:$BUILD_NUMBER'
+                    sh 'docker push $IMAGE_NAME:latest'
+                }
+            }
+            post {
+                always {
+                    sh 'docker logout || true'
+                }
+            }
+        }
+    }
+}
