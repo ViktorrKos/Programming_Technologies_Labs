@@ -4,7 +4,7 @@ pipeline {
     agent none
 
     environment {
-        IMAGE_NAME = 'vkdevinfo'
+        IMAGE_NAME = 'vkdevinfo/lab4-flask-app'
     }
 
     stages {
@@ -23,9 +23,11 @@ pipeline {
                 }
             }
             steps {
-                echo "Building ...${BUILD_NUMBER}"
-                sh 'python -m py_compile app.py'
-                echo 'Build completed'
+                dir('lab4') {
+                    echo "Building ...${BUILD_NUMBER}"
+                    sh 'python -m py_compile app.py'
+                    echo 'Build completed'
+                }
             }
         }
 
@@ -37,12 +39,14 @@ pipeline {
                 }
             }
             steps {
-                sh 'pip install --no-cache-dir --root-user-action=ignore -r requirements.txt -r requirements-test.txt'
-                sh 'python app_tests.py'
+                dir('lab4') {
+                    sh 'pip install --no-cache-dir --root-user-action=ignore -r requirements.txt -r requirements-test.txt'
+                    sh 'python app_tests.py'
+                }
             }
             post {
                 always {
-                    junit 'test-reports/*.xml'
+                    junit 'lab4/test-reports/*.xml'
                 }
                 success {
                     echo 'Application testing successfully completed'
@@ -56,7 +60,9 @@ pipeline {
         stage('Image building') {
             agent any
             steps {
-                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER -t $IMAGE_NAME:latest .'
+                dir('lab4') {
+                    sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER -t $IMAGE_NAME:latest .'
+                }
             }
         }
 
