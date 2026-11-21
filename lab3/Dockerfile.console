@@ -1,0 +1,11 @@
+# Використовуємо легку версію Python
+FROM python:3.9-slim
+
+# Робоча директорія всередині контейнера
+WORKDIR /app
+
+# Копіюємо лише необхідні для консольної програми файли
+COPY main_console.py preorder_manager.py ./
+
+# Запускаємо нашу консольну програму
+CMD ["python", "main_console.py"]

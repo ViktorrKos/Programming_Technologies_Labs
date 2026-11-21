@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  catalog:
+    build:
+      context: .
+      dockerfile: Dockerfile.catalog
+    ports:
+      - "8001:8000"
+    container_name: catalog_service_container
+    restart: always
+
+  preorder:
+    build:
+      context: .
+      dockerfile: Dockerfile.preorder
+    ports:
+      - "8002:8000"
+    container_name: preorder_service_container
+    restart: always
